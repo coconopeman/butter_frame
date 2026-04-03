@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>빠다편집툴 - 커미션 신청서 생성기</title>
+    <!-- Tailwind CSS (스타일링 용도) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvas (이미지 저장 용도) -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <!-- Cropper.js (이미지 확대/축소/크롭 용도) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <style>
+        /* 편집 가능한 텍스트 영역의 placeholder 스타일 */
+        [contenteditable]:empty:before {
+            content: attr(data-placeholder);
+            color: #9ca3af;
+            pointer-events: none;
+        }
+        
+        /* 크로퍼 커스텀 (불필요한 가이드라인 숨기기) */
+        .cropper-view-box, .cropper-face { border-radius: 0.25rem; outline: none !important; }
+        .cropper-dashed, .cropper-point, .cropper-line, .cropper-center { display: none !important; }
+        .cropper-bg { background-image: none !important; background-color: transparent !important; }
+        
+        /* 캡쳐 영역 (가로 길이만 고정, 세로는 인원수에 따라 무한 확장) */
+        #capture-area {
+            width: 1000px;
+        }
+    </style>
+</head>
+<body class="bg-[#4d4d4d] min-h-screen flex flex-col items-center py-10 font-sans">
+
+    <!-- 상단 컨트롤러 -->
+    <div class="mb-6 flex gap-6 w-[1000px] items-center">
+        <h1 class="text-2xl font-bold text-white">빠다편집툴</h1>
+        <div class="flex gap-3">
+            <button id="add-person-btn" onclick="addPerson()" class="bg-gray-100 hover:bg-white text-gray-800 font-bold py-3 px-6 rounded shadow-md transition-colors">
+                인원 추가 (1/10)
+            </button>
+            <button onclick="saveAsImage()" class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-3 px-6 rounded shadow-md transition-colors">
+                이미지로 저장하기
+            </button>
+        </div>
+    </div>
+
+    <!-- 캡쳐(저장)될 실제 캔버스 영역 -->
+    <div id="capture-area" class="bg-white shadow-xl rounded-md overflow-hidden flex flex-col">
+        <!-- 인원이 추가되는 컨테이너 -->
+        <div id="persons-container" class="w-full flex flex-col">
+            <!-- 인원이 추가되면 이 곳에 양식이 차곡차곡 쌓입니다. -->
+        </div>
+    </div>
+
+    <!-- 양식 템플릿 (보이지 않으며, 인원 추가 시 복사해서 사용됨) -->
+    <template id="person-template">
+        <!-- 1인분 전체 래퍼 (본문 + 추가자료) -->
+        <div class="person-wrapper w-full flex flex-col box-border border-b-2 border-dashed border-gray-300 last:border-b-0 relative group bg-white">
+            
+            <!-- 다인원일 경우 나오는 삭제 버튼 -->
+            <button class="delete-btn no-capture absolute top-4 right-4 bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1.5 rounded-sm text-xs font-bold hidden opacity-0 group-hover:opacity-100 transition z-10">
+                삭제
+            </button>
+
+            <!-- 상단: 기본 인원 정보 블록 -->
+            <div class="person-block w-full p-5 flex flex-col box-border relative">
+                <!-- 알파벳 라벨 -->
+                <div class="person-label text-left text-6xl font-black text-gray-800 mb-6 w-full"></div>
+
+                <div class="w-full h-[480px] flex gap-5">
+                    <!-- 1. 좌측: SD 전신 -->
+                    <div class="w-[320px] h-full flex-shrink-0 flex flex-col">
+                        <h3 class="font-bold text-gray-700 mb-2 flex justify-between items-center">
+                            <span>전신 <span class="text-gray-400 text-sm font-normal">SD추천</span></span>
+                            <button class="sd-reupload-btn no-capture text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded-sm hidden" onclick="this.closest('.person-block').querySelector('.sd-upload').click()">이미지 변경</button>
+                        </h3>
+                        <div class="sd-container flex-1 w-full relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden block">
+                            <div class="sd-placeholder absolute inset-0 flex flex-col items-center justify-center text-gray-400 font-bold text-sm cursor-pointer hover:bg-slate-100 z-10 transition text-center px-4" onclick="this.nextElementSibling.click()">
+                                클릭하여 업로드
+                                <span class="text-xs font-normal mt-1 text-gray-400">(드래그 이동 / 휠 확대,축소)</span>
+                            </div>
+                            <input type="file" class="sd-upload hidden" accept="image/*" onchange="loadCropperImage(event, 'sd')">
+                            <img class="sd-img max-w-full block opacity-0">
+                        </div>
+                    </div>
+
+                    <!-- 우측 컨텐츠 영역 -->
+                    <div class="flex-1 flex flex-col gap-4 h-full overflow-hidden">
+                        <!-- 우측 상단: LD 두상 & 컬러 팔레트 -->
+                        <div class="flex gap-4">
+                            <!-- 3. LD 두상 -->
+                            <div class="flex-shrink-0 flex flex-col">
+                                <h3 class="font-bold text-gray-700 mb-2 flex justify-between items-center">
+                                    <span>두상 <span class="text-gray-400 text-sm font-normal">혹은 주요 소품이나 동물화</span></span>
+                                    <button class="ld-reupload-btn no-capture text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded-sm hidden" onclick="this.closest('.person-block').querySelector('.ld-upload').click()">이미지 변경</button>
+                                </h3>
+                                <div class="ld-container w-[240px] h-[240px] relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden block flex-shrink-0">
+                                    <div class="ld-placeholder absolute inset-0 flex flex-col items-center justify-center text-gray-400 font-bold text-xs text-center px-4 cursor-pointer hover:bg-slate-100 z-10 transition" onclick="this.nextElementSibling.click()">
+                                        클릭하여 업로드
+                                        <span class="text-[10px] font-normal mt-1 text-gray-400">(드래그 이동 / 휠 확대,축소)</span>
+                                    </div>
+                                    <input type="file" class="ld-upload hidden" accept="image/*" onchange="loadCropperImage(event, 'ld')">
+                                    <img class="ld-img max-w-full block opacity-0">
+                                </div>
+                            </div>
+
+                            <!-- 2. 컬러 팔레트 -->
+                            <div class="flex-1 flex flex-col">
+                                <h3 class="font-bold text-gray-700 mb-2">색상표</h3>
+                                <div class="flex gap-2 justify-around flex-1 bg-gray-50 rounded px-2 pt-20 pb-2 border border-gray-100 items-start">
+                                    <div class="flex flex-col items-center w-12">
+                                        <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #ffb3ba;">
+                                            <input type="color" value="#ffb3ba" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="this.parentElement.style.backgroundColor = this.value">
+                                        </label>
+                                        <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
+                                    </div>
+                                    <div class="flex flex-col items-center w-12">
+                                        <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #ffdfba;">
+                                            <input type="color" value="#ffdfba" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="this.parentElement.style.backgroundColor = this.value">
+                                        </label>
+                                        <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
+                                    </div>
+                                    <div class="flex flex-col items-center w-12">
+                                        <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #ffffba;">
+                                            <input type="color" value="#ffffba" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="this.parentElement.style.backgroundColor = this.value">
+                                        </label>
+                                        <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
+                                    </div>
+                                    <div class="flex flex-col items-center w-12">
+                                        <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #baffc9;">
+                                            <input type="color" value="#baffc9" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="this.parentElement.style.backgroundColor = this.value">
+                                        </label>
+                                        <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
+                                    </div>
+                                    <div class="flex flex-col items-center w-12">
+                                        <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #bae1ff;">
+                                            <input type="color" value="#bae1ff" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="this.parentElement.style.backgroundColor = this.value">
+                                        </label>
+                                        <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. 특징 및 요소 텍스트 영역 -->
+                        <div class="flex-1 flex flex-col min-h-0">
+                            <div class="flex items-center gap-2 mb-2">
+                                <h3 class="font-bold text-gray-700">설명칸</h3>
+                                <button onclick="document.execCommand('bold', false, null)" class="no-capture px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm text-xs font-bold text-gray-700 transition">
+                                    굵은 글씨
+                                </button>
+                            </div>
+                            <div class="desc-input flex-1 bg-gray-50 border-2 border-gray-100 rounded p-4 text-gray-800 outline-none focus:border-yellow-400 focus:bg-white transition overflow-hidden whitespace-pre-wrap leading-relaxed break-words" contenteditable="true" data-placeholder="이미지에 드러나지않은 캐릭터의 특징이나 빠지지 않았으면 하는 부분, 강조하고 싶은 부분을 적어주세요. (최대 5줄)"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 하단: 개인별 추가자료 영역 -->
+            <div class="additional-section w-full px-5 pb-5 pt-3 flex flex-col box-border bg-white border-t border-gray-100">
+                <div class="flex items-center gap-3 mb-4">
+                    <h3 class="font-bold text-gray-700">추가자료</h3>
+                    <button onclick="addAdditionalImage(this)" class="no-capture px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-sm text-sm font-bold transition">
+                        + 이미지 추가
+                    </button>
+                </div>
+                
+                <!-- 이미지 슬롯들이 격자로 가득 채워질 영역 -->
+                <div class="additional-images-container grid grid-cols-4 gap-4 w-full h-auto">
+                    <!-- 기본 이미지 슬롯 1개 -->
+                    <div class="additional-img-slot w-full h-[240px] relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden group">
+                        <button class="no-capture absolute top-1 right-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm text-[10px] font-bold hidden group-hover:block z-20" onclick="removeAdditionalImage(this)">삭제</button>
+                        <div class="placeholder absolute inset-0 flex flex-col items-center justify-center text-gray-400 font-bold text-xs text-center px-2 cursor-pointer hover:bg-slate-100 z-10 transition" onclick="this.nextElementSibling.click()">
+                            클릭하여 업로드
+                            <span class="text-[10px] font-normal mt-1 text-gray-400">(드래그/휠)</span>
+                        </div>
+                        <input type="file" class="hidden" accept="image/*" onchange="loadAdditionalCropperImage(event)">
+                        <img class="max-w-full block opacity-0">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </template>
+
+    <!-- 스크립트 -->
+    <script>
+        const MAX_PERSON = 10;
+        let personCount = 0;
+        // 이미지 요소별 크로퍼 객체를 담아둘 Map
+        const croppers = new Map();
+
+        // 1. 초기 1인 세팅
+        window.onload = function() {
+            addPerson();
+        };
+
+        // 2. 인원 추가 기능
+        function addPerson() {
+            if (personCount >= MAX_PERSON) {
+                alert(`최대 ${MAX_PERSON}인까지만 추가 가능합니다.`);
+                return;
+            }
+
+            const template = document.getElementById('person-template');
+            const clone = template.content.cloneNode(true);
+            const wrapper = clone.querySelector('.person-wrapper');
+
+            // 2인 이상일 때부터 삭제 버튼 활성화
+            if (personCount > 0) {
+                const deleteBtn = wrapper.querySelector('.delete-btn');
+                deleteBtn.style.display = 'block';
+                deleteBtn.onclick = function() {
+                    // 삭제 시 크로퍼 메모리 해제
+                    const imgs = wrapper.querySelectorAll('img');
+                    imgs.forEach(img => {
+                        if (croppers.has(img)) {
+                            croppers.get(img).destroy();
+                            croppers.delete(img);
+                        }
+                    });
+                    wrapper.remove();
+                    personCount--;
+                    updateAddButton();
+                    updateLabels();
+                };
+            }
+
+            document.getElementById('persons-container').appendChild(clone);
+            personCount++;
+            updateAddButton();
+            updateLabels();
+        }
+
+        function updateAddButton() {
+            document.getElementById('add-person-btn').innerText = `인원 추가 (${personCount}/${MAX_PERSON})`;
+        }
+
+        // 인원 알파벳 자동 업데이트 (A, B, C...)
+        function updateLabels() {
+            const labels = document.querySelectorAll('.person-label');
+            labels.forEach((label, index) => {
+                label.innerText = String.fromCharCode(65 + index);
+            });
+        }
+
+        // 추가자료 섹션 이미지 추가 로직 (개인별)
+        function addAdditionalImage(btn) {
+            const container = btn.closest('.additional-section').querySelector('.additional-images-container');
+            if(container.children.length >= 20) {
+                alert("해당 인원의 추가 이미지는 최대 20개까지만 가능합니다.");
+                return;
+            }
+            
+            const slotHTML = `
+                <div class="additional-img-slot w-full h-[240px] relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden group">
+                    <button class="no-capture absolute top-1 right-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm text-[10px] font-bold hidden group-hover:block z-20" onclick="removeAdditionalImage(this)">삭제</button>
+                    <div class="placeholder absolute inset-0 flex flex-col items-center justify-center text-gray-400 font-bold text-xs text-center px-2 cursor-pointer hover:bg-slate-100 z-10 transition" onclick="this.nextElementSibling.click()">
+                        클릭하여 업로드
+                        <span class="text-[10px] font-normal mt-1 text-gray-400">(드래그/휠)</span>
+                    </div>
+                    <input type="file" class="hidden" accept="image/*" onchange="loadAdditionalCropperImage(event)">
+                    <img class="max-w-full block opacity-0">
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', slotHTML);
+        }
+
+        // 추가자료 섹션 이미지 삭제 로직
+        function removeAdditionalImage(btn) {
+            const slot = btn.closest('.additional-img-slot');
+            const img = slot.querySelector('img');
+            if(croppers.has(img)) {
+                croppers.get(img).destroy();
+                croppers.delete(img);
+            }
+            slot.remove();
+        }
+
+        // 3. 줄 수 제한 (물리적 높이를 계산하여 브라우저 버그 없이 완벽 차단)
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const el = e.target;
+                let maxLines = 0;
+                
+                if (el.classList.contains('desc-input')) maxLines = 5;
+                else if (el.classList.contains('color-desc')) maxLines = 3;
+                
+                if (maxLines > 0) {
+                    let style = window.getComputedStyle(el);
+                    let lineHeight = parseFloat(style.lineHeight);
+                    if (isNaN(lineHeight)) lineHeight = parseFloat(style.fontSize) * 1.5;
+                    let paddingTop = parseFloat(style.paddingTop);
+                    let paddingBottom = parseFloat(style.paddingBottom);
+                    
+                    let currentHeight = el.scrollHeight;
+                    let maxHeight = Math.round((lineHeight * maxLines) + paddingTop + paddingBottom);
+                    
+                    if (currentHeight >= maxHeight - 2) {
+                        e.preventDefault();
+                    }
+                }
+            }
+        });
+
+        // 붙여넣기 할 때도 초과하지 않도록 높이 기준으로 필터링
+        document.addEventListener('paste', function(e) {
+            const el = e.target;
+            let maxLines = 0;
+            
+            if (el.classList.contains('desc-input')) maxLines = 5;
+            else if (el.classList.contains('color-desc')) maxLines = 3;
+
+            if (maxLines > 0) {
+                e.preventDefault();
+                let style = window.getComputedStyle(el);
+                let lineHeight = parseFloat(style.lineHeight);
+                if (isNaN(lineHeight)) lineHeight = parseFloat(style.fontSize) * 1.5;
+                let paddingTop = parseFloat(style.paddingTop);
+                let paddingBottom = parseFloat(style.paddingBottom);
+                
+                let currentLines = Math.round((el.scrollHeight - paddingTop - paddingBottom) / lineHeight);
+                let availableLines = maxLines - currentLines;
+                
+                let text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                
+                if (availableLines <= 0) {
+                    document.execCommand('insertText', false, text.replace(/\r?\n/g, ' '));
+                    return;
+                }
+                
+                let linesArr = text.split(/\r?\n/).slice(0, availableLines + 1);
+                document.execCommand('insertText', false, linesArr.join('\n'));
+            }
+        });
+
+        // 4. 전신, 두상 이미지 로드 및 Cropper 적용
+        function loadCropperImage(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const block = event.target.closest('.person-block');
+            const container = block.querySelector(`.${type}-container`);
+            const imgElement = block.querySelector(`.${type}-img`);
+            const placeholder = block.querySelector(`.${type}-placeholder`);
+            const reuploadBtn = block.querySelector(`.${type}-reupload-btn`);
+
+            applyCropperLogic(file, imgElement, placeholder, container, reuploadBtn);
+            event.target.value = ''; 
+        }
+
+        // 추가자료 이미지 로드 및 Cropper 적용
+        function loadAdditionalCropperImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const slot = event.target.closest('.additional-img-slot');
+            const imgElement = slot.querySelector('img');
+            const placeholder = slot.querySelector('.placeholder');
+
+            applyCropperLogic(file, imgElement, placeholder, slot, null);
+            event.target.value = '';
+        }
+
+        // 공통 크로퍼 등록 로직
+        function applyCropperLogic(file, imgElement, placeholder, container, reuploadBtn) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imgElement.src = e.target.result;
+                imgElement.style.opacity = '1';
+                if(placeholder) placeholder.style.display = 'none';
+                if(reuploadBtn) reuploadBtn.style.display = 'block';
+
+                container.classList.remove('border-2', 'border-dashed', 'border-slate-300');
+
+                if (croppers.has(imgElement)) {
+                    croppers.get(imgElement).destroy();
+                }
+                
+                const cropper = new Cropper(imgElement, {
+                    viewMode: 0, 
+                    dragMode: 'move', 
+                    autoCropArea: 1, 
+                    restore: false,
+                    guides: false,
+                    center: false,
+                    highlight: false,
+                    cropBoxMovable: false, 
+                    cropBoxResizable: false, 
+                    toggleDragModeOnDblclick: false,
+                    background: false,
+                    ready: function () {
+                        const containerData = cropper.getContainerData();
+                        cropper.setCropBoxData({
+                            left: 0,
+                            top: 0,
+                            width: containerData.width,
+                            height: containerData.height
+                        });
+                    }
+                });
+                
+                croppers.set(imgElement, cropper);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 5. 이미지로 묶어 저장
+        function saveAsImage() {
+            const captureArea = document.getElementById('capture-area');
+            const noCaptureElements = document.querySelectorAll('.no-capture');
+            let tempImgs = [];
+            
+            // UI 숨기기
+            noCaptureElements.forEach(el => el.style.visibility = 'hidden');
+
+            // 적용된 모든 크로퍼를 이미지로 변환하여 고정
+            croppers.forEach((cropper, imgElement) => {
+                const container = imgElement.closest('.sd-container, .ld-container, .additional-img-slot');
+                if(!container) return;
+
+                const canvasData = cropper.getCroppedCanvas();
+                const tempImg = document.createElement('img');
+                
+                tempImg.src = canvasData.toDataURL('image/png');
+                tempImg.style.width = '100%';
+                tempImg.style.height = '100%';
+                tempImg.style.position = 'absolute';
+                tempImg.style.top = '0';
+                tempImg.style.left = '0';
+                tempImg.style.zIndex = '5';
+                tempImg.style.backgroundColor = '#ffffff';
+                tempImg.style.objectFit = 'cover';
+                
+                container.appendChild(tempImg);
+                tempImgs.push({ img: tempImg, container: container, cropperUI: container.querySelector('.cropper-container') });
+                
+                if (tempImgs[tempImgs.length-1].cropperUI) {
+                    tempImgs[tempImgs.length-1].cropperUI.style.display = 'none';
+                }
+            });
+
+            // html2canvas로 캡쳐 후 저장
+            html2canvas(captureArea, {
+                scale: 2, 
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `commission_application_${personCount}인.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                // 숨겼던 UI 및 크로퍼 복구
+                noCaptureElements.forEach(el => el.style.visibility = 'visible');
+                tempImgs.forEach(item => {
+                    if (item.cropperUI) item.cropperUI.style.display = 'block';
+                    item.container.removeChild(item.img);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
