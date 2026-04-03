@@ -83,8 +83,8 @@
                     <div class="w-[320px] h-full flex-shrink-0 flex flex-col">
                         <h3 class="font-bold text-gray-700 mb-2 flex justify-between items-center">
                             <span>
-                                <span contenteditable="true" class="editable-label">전신</span> 
-                                <span contenteditable="true" class="editable-label text-gray-400 text-sm font-normal">SD추천</span>
+                                <span contenteditable="true" spellcheck="false" lang="ko" class="editable-label">전신</span> 
+                                <span contenteditable="true" spellcheck="false" lang="ko" class="editable-label text-gray-400 text-sm font-normal">SD추천</span>
                             </span>
                             <button class="sd-reupload-btn no-capture text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded-sm hidden" onclick="this.closest('.person-block').querySelector('.sd-upload').click()">이미지 변경</button>
                         </h3>
@@ -106,8 +106,8 @@
                             <div class="flex-shrink-0 flex flex-col">
                                 <h3 class="font-bold text-gray-700 mb-2 flex justify-between items-center">
                                     <span>
-                                        <span contenteditable="true" class="editable-label">두상</span> 
-                                        <span contenteditable="true" class="editable-label text-gray-400 text-sm font-normal">혹은 주요 소품이나 동물화</span>
+                                        <span contenteditable="true" spellcheck="false" lang="ko" class="editable-label">두상</span> 
+                                        <span contenteditable="true" spellcheck="false" lang="ko" class="editable-label text-gray-400 text-sm font-normal">혹은 주요 소품이나 동물화</span>
                                     </span>
                                     <button class="ld-reupload-btn no-capture text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded-sm hidden" onclick="this.closest('.person-block').querySelector('.ld-upload').click()">이미지 변경</button>
                                 </h3>
@@ -123,40 +123,40 @@
 
                             <!-- 2. 컬러 팔레트 -->
                             <div class="flex-1 flex flex-col h-[240px]">
-                                <h3 class="font-bold text-gray-700 mb-2" contenteditable="true">색상표</h3>
+                                <h3 class="font-bold text-gray-700 mb-2" contenteditable="true" spellcheck="false" lang="ko">색상표</h3>
                                 <div class="flex gap-2 justify-around h-[120px] bg-gray-50 rounded px-2 pt-6 pb-2 border border-gray-100 items-start">
                                     <div class="flex flex-col items-center w-12">
                                         <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #ffb3ba;">
                                             <input type="color" value="#ffb3ba" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="this.parentElement.style.backgroundColor = this.value">
                                         </label>
-                                        <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
+                                        <div contenteditable="true" spellcheck="false" lang="ko" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
                                     </div>
                                     <div class="flex flex-col items-center w-12">
                                         <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #ffdfba;">
                                             <input type="color" value="#ffdfba" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="this.parentElement.style.backgroundColor = this.value">
                                         </label>
-                                        <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
+                                        <div contenteditable="true" spellcheck="false" lang="ko" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
                                     </div>
                                     <div class="flex flex-col items-center w-12">
                                         <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #ffffba;">
                                             <input type="color" value="#ffffba" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="this.parentElement.style.backgroundColor = this.value">
                                         </label>
-                                        <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
+                                        <div contenteditable="true" spellcheck="false" lang="ko" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
                                     </div>
                                     <div class="flex flex-col items-center w-12">
                                         <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #baffc9;">
                                             <input type="color" value="#baffc9" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="this.parentElement.style.backgroundColor = this.value">
                                         </label>
-                                        <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
+                                        <div contenteditable="true" spellcheck="false" lang="ko" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
                                     </div>
                                     <div class="flex flex-col items-center w-12">
                                         <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #bae1ff;">
                                             <input type="color" value="#bae1ff" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="this.parentElement.style.backgroundColor = this.value">
                                         </label>
-                                        <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
+                                        <div contenteditable="true" spellcheck="false" lang="ko" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
                                     </div>
                                 </div>
-                                <div class="mt-auto pb-1 text-[13px] text-gray-400 leading-tight text-center whitespace-pre-wrap outline-none" contenteditable="true">자료를 참고하여 작업하나
+                                <div class="mt-auto pb-1 text-[13px] text-gray-400 leading-tight text-center whitespace-pre-wrap outline-none" contenteditable="true" spellcheck="false" lang="ko">자료를 참고하여 작업하나
 작업자의 그림 스타일에 따라
 변형이 생길 수 있습니다. 이에 동의합니다.</div>
                             </div>
@@ -165,12 +165,12 @@
                         <!-- 4. 특징 및 요소 텍스트 영역 -->
                         <div class="flex-1 flex flex-col min-h-0">
                             <div class="flex items-center gap-2 mb-2">
-                                <h3 class="font-bold text-gray-700" contenteditable="true">설명칸</h3>
+                                <h3 class="font-bold text-gray-700" contenteditable="true" spellcheck="false" lang="ko">설명칸</h3>
                                 <button onclick="document.execCommand('bold', false, null)" class="no-capture px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm text-xs font-bold text-gray-700 transition">
                                     굵은 글씨
                                 </button>
                             </div>
-                            <div class="desc-input flex-1 bg-gray-50 border-2 border-gray-100 rounded p-4 text-gray-800 outline-none focus:border-yellow-400 focus:bg-white transition overflow-hidden whitespace-pre-wrap leading-relaxed break-words" contenteditable="true" data-placeholder="이미지에 드러나지않은 캐릭터의 특징이나 빠지지 않았으면 하는 부분, 강조하고 싶은 부분을 적어주세요. (최대 5줄)"></div>
+                            <div class="desc-input flex-1 bg-gray-50 border-2 border-gray-100 rounded p-4 text-gray-800 outline-none focus:border-yellow-400 focus:bg-white transition overflow-hidden whitespace-pre-wrap leading-relaxed break-words" contenteditable="true" spellcheck="false" lang="ko" data-placeholder="이미지에 드러나지않은 캐릭터의 특징이나 빠지지 않았으면 하는 부분, 강조하고 싶은 부분을 적어주세요. (최대 5줄)"></div>
                         </div>
                     </div>
                 </div>
@@ -179,7 +179,7 @@
             <!-- 하단: 개인별 추가자료 영역 -->
             <div class="additional-section w-full px-5 pb-5 pt-3 flex flex-col box-border bg-white border-t border-gray-100">
                 <div class="flex items-center gap-3 mb-4">
-                    <h3 class="font-bold text-gray-700" contenteditable="true">추가자료</h3>
+                    <h3 class="font-bold text-gray-700" contenteditable="true" spellcheck="false" lang="ko">추가자료</h3>
                     <button onclick="addAdditionalImage(this)" class="no-capture px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-sm text-sm font-bold transition">
                         + 이미지 추가
                     </button>
@@ -198,6 +198,9 @@
         const MAX_PERSON = 10;
         let personCount = 0;
         const croppers = new Map();
+        
+        // 한글 입력(IME) 상태 추적
+        let isComposing = false;
 
         window.onload = function() {
             addPerson();
@@ -279,14 +282,27 @@
             slot.remove();
         }
 
-        // 3. 줄 수 제한 (한글 IME 지원 강화)
-        document.addEventListener('keydown', function(e) {
-            if (e.isComposing) return;
+        // IME 상태 추적 이벤트 리스너
+        document.addEventListener('compositionstart', () => { isComposing = true; });
+        document.addEventListener('compositionend', () => { isComposing = false; });
 
+        // 한글 입력기 깨짐 방지를 위한 강제 포커스 리셋
+        document.addEventListener('focusin', (e) => {
+            if (e.target.hasAttribute('contenteditable')) {
+                // 이미지가 업로드되거나 컬러 피커 사용 후 포커스가 나갔다 들어올 때
+                // 브라우저가 영문 입력 모드로 고정되는 것을 방지하기 위해 힌트 제공
+                e.target.setAttribute('lang', 'ko');
+            }
+        });
+
+        // 3. 줄 수 제한
+        document.addEventListener('keydown', function(e) {
+            const el = e.target;
+            if (!el.hasAttribute('contenteditable')) return;
+
+            // 엔터 키 제한 (한글 합성 중이라도 높이 한계치면 막음)
             if (e.key === 'Enter') {
-                const el = e.target;
                 let maxLines = 0;
-                
                 if (el.classList.contains('desc-input')) maxLines = 5;
                 else if (el.classList.contains('color-desc')) maxLines = 3;
                 
