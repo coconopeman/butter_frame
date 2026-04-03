@@ -33,6 +33,12 @@
         #capture-area {
             width: 1000px;
         }
+
+        /* 제목 편집 시 포커스 테두리 제거 */
+        .editable-label:focus {
+            outline: none;
+            background-color: #f3f4f6;
+        }
     </style>
 </head>
 <body class="bg-[#4d4d4d] min-h-screen flex flex-col items-center py-10 font-sans">
@@ -76,7 +82,10 @@
                     <!-- 1. 좌측: SD 전신 -->
                     <div class="w-[320px] h-full flex-shrink-0 flex flex-col">
                         <h3 class="font-bold text-gray-700 mb-2 flex justify-between items-center">
-                            <span>전신 <span class="text-gray-400 text-sm font-normal">SD추천</span></span>
+                            <span>
+                                <span contenteditable="true" class="editable-label">전신</span> 
+                                <span contenteditable="true" class="editable-label text-gray-400 text-sm font-normal">SD추천</span>
+                            </span>
                             <button class="sd-reupload-btn no-capture text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded-sm hidden" onclick="this.closest('.person-block').querySelector('.sd-upload').click()">이미지 변경</button>
                         </h3>
                         <div class="sd-container flex-1 w-full relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden block">
@@ -96,7 +105,10 @@
                             <!-- 3. LD 두상 -->
                             <div class="flex-shrink-0 flex flex-col">
                                 <h3 class="font-bold text-gray-700 mb-2 flex justify-between items-center">
-                                    <span>두상 <span class="text-gray-400 text-sm font-normal">혹은 주요 소품이나 동물화</span></span>
+                                    <span>
+                                        <span contenteditable="true" class="editable-label">두상</span> 
+                                        <span contenteditable="true" class="editable-label text-gray-400 text-sm font-normal">혹은 주요 소품이나 동물화</span>
+                                    </span>
                                     <button class="ld-reupload-btn no-capture text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded-sm hidden" onclick="this.closest('.person-block').querySelector('.ld-upload').click()">이미지 변경</button>
                                 </h3>
                                 <div class="ld-container w-[240px] h-[240px] relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden block flex-shrink-0">
@@ -111,7 +123,7 @@
 
                             <!-- 2. 컬러 팔레트 -->
                             <div class="flex-1 flex flex-col h-[240px]">
-                                <h3 class="font-bold text-gray-700 mb-2">색상표</h3>
+                                <h3 class="font-bold text-gray-700 mb-2" contenteditable="true">색상표</h3>
                                 <div class="flex gap-2 justify-around h-[120px] bg-gray-50 rounded px-2 pt-6 pb-2 border border-gray-100 items-start">
                                     <div class="flex flex-col items-center w-12">
                                         <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #ffb3ba;">
@@ -144,18 +156,16 @@
                                         <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
                                     </div>
                                 </div>
-                                <div class="mt-auto pb-1 text-[13px] text-gray-400 leading-tight text-center">
-                                    자료를 참고하여 작업하나<br>
-                                    작업자의 그림 스타일에 따라<br>
-                                    변형이 생길 수 있습니다. 이에 동의합니다.
-                                </div>
+                                <div class="mt-auto pb-1 text-[13px] text-gray-400 leading-tight text-center whitespace-pre-wrap outline-none" contenteditable="true">자료를 참고하여 작업하나
+작업자의 그림 스타일에 따라
+변형이 생길 수 있습니다. 이에 동의합니다.</div>
                             </div>
                         </div>
 
                         <!-- 4. 특징 및 요소 텍스트 영역 -->
                         <div class="flex-1 flex flex-col min-h-0">
                             <div class="flex items-center gap-2 mb-2">
-                                <h3 class="font-bold text-gray-700">설명칸</h3>
+                                <h3 class="font-bold text-gray-700" contenteditable="true">설명칸</h3>
                                 <button onclick="document.execCommand('bold', false, null)" class="no-capture px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm text-xs font-bold text-gray-700 transition">
                                     굵은 글씨
                                 </button>
@@ -169,7 +179,7 @@
             <!-- 하단: 개인별 추가자료 영역 -->
             <div class="additional-section w-full px-5 pb-5 pt-3 flex flex-col box-border bg-white border-t border-gray-100">
                 <div class="flex items-center gap-3 mb-4">
-                    <h3 class="font-bold text-gray-700">추가자료</h3>
+                    <h3 class="font-bold text-gray-700" contenteditable="true">추가자료</h3>
                     <button onclick="addAdditionalImage(this)" class="no-capture px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-sm text-sm font-bold transition">
                         + 이미지 추가
                     </button>
