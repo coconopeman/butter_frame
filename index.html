@@ -39,6 +39,12 @@
             outline: none;
             background-color: #f3f4f6;
         }
+
+        /* 한 줄 텍스트 제한 스타일 */
+        .single-line-input {
+            white-space: nowrap;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="bg-[#4d4d4d] min-h-screen flex flex-col items-center py-10 font-sans">
@@ -259,14 +265,17 @@
             }
             
             const slotHTML = `
-                <div class="additional-img-slot w-full h-[240px] relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden group">
-                    <button class="no-capture absolute top-1 right-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm text-[10px] font-bold hidden group-hover:block z-20" onclick="removeAdditionalImage(this)">삭제</button>
-                    <div class="placeholder absolute inset-0 flex flex-col items-center justify-center text-gray-400 font-bold text-xs text-center px-2 cursor-pointer hover:bg-slate-100 z-10 transition" onclick="this.nextElementSibling.click()">
-                        클릭하여 업로드
-                        <span class="text-[10px] font-normal mt-1 text-gray-400">(드래그/휠)</span>
+                <div class="additional-img-slot w-full flex flex-col group">
+                    <div class="w-full h-[240px] relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden">
+                        <button class="no-capture absolute top-1 right-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm text-[10px] font-bold hidden group-hover:block z-20" onclick="removeAdditionalImage(this)">삭제</button>
+                        <div class="placeholder absolute inset-0 flex flex-col items-center justify-center text-gray-400 font-bold text-xs text-center px-2 cursor-pointer hover:bg-slate-100 z-10 transition" onclick="this.nextElementSibling.click()">
+                            클릭하여 업로드
+                            <span class="text-[10px] font-normal mt-1 text-gray-400">(드래그/휠)</span>
+                        </div>
+                        <input type="file" class="hidden" accept="image/*" onchange="loadAdditionalCropperImage(event)">
+                        <img class="max-w-full block opacity-0">
                     </div>
-                    <input type="file" class="hidden" accept="image/*" onchange="loadAdditionalCropperImage(event)">
-                    <img class="max-w-full block opacity-0">
+                    <div contenteditable="true" spellcheck="false" lang="ko" data-placeholder="설명 입력" class="additional-img-text w-full text-center mt-2 outline-none text-gray-800 single-line-input"></div>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', slotHTML);
@@ -289,8 +298,6 @@
         // 한글 입력기 깨짐 방지를 위한 강제 포커스 리셋
         document.addEventListener('focusin', (e) => {
             if (e.target.hasAttribute('contenteditable')) {
-                // 이미지가 업로드되거나 컬러 피커 사용 후 포커스가 나갔다 들어올 때
-                // 브라우저가 영문 입력 모드로 고정되는 것을 방지하기 위해 힌트 제공
                 e.target.setAttribute('lang', 'ko');
             }
         });
@@ -300,8 +307,14 @@
             const el = e.target;
             if (!el.hasAttribute('contenteditable')) return;
 
-            // 엔터 키 제한 (한글 합성 중이라도 높이 한계치면 막음)
+            // 엔터 키 제한
             if (e.key === 'Enter') {
+                // 추가자료 설명 텍스트는 무조건 1줄 제한
+                if (el.classList.contains('additional-img-text')) {
+                    e.preventDefault();
+                    return;
+                }
+
                 let maxLines = 0;
                 if (el.classList.contains('desc-input')) maxLines = 5;
                 else if (el.classList.contains('color-desc')) maxLines = 3;
@@ -325,8 +338,16 @@
 
         document.addEventListener('paste', function(e) {
             const el = e.target;
-            let maxLines = 0;
             
+            // 추가자료 설명 텍스트는 붙여넣기 시 줄바꿈 제거
+            if (el.classList.contains('additional-img-text')) {
+                e.preventDefault();
+                let text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                document.execCommand('insertText', false, text.replace(/\r?\n/g, ' '));
+                return;
+            }
+
+            let maxLines = 0;
             if (el.classList.contains('desc-input')) maxLines = 5;
             else if (el.classList.contains('color-desc')) maxLines = 3;
 
@@ -375,7 +396,10 @@
             const imgElement = slot.querySelector('img');
             const placeholder = slot.querySelector('.placeholder');
 
-            applyCropperLogic(file, imgElement, placeholder, slot, null);
+            // 추가자료 슬롯 전체(상위 div)를 컨테이너로 전달
+            const imageContainer = slot.querySelector('div:first-child');
+
+            applyCropperLogic(file, imgElement, placeholder, imageContainer, null);
             event.target.value = '';
         }
 
@@ -429,7 +453,8 @@
             noCaptureElements.forEach(el => el.style.visibility = 'hidden');
 
             croppers.forEach((cropper, imgElement) => {
-                const container = imgElement.closest('.sd-container, .ld-container, .additional-img-slot');
+                // 부모 컨테이너 찾기 (전신, 두상, 추가자료 공통)
+                const container = imgElement.parentElement;
                 if(!container) return;
 
                 const canvasData = cropper.getCroppedCanvas();
