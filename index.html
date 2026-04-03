@@ -184,7 +184,7 @@
             </div>
 
             <!-- 하단: 개인별 추가자료 영역 -->
-            <div class="additional-section w-full px-5 pb-12 pt-3 flex flex-col box-border bg-white border-t border-gray-100 h-auto min-h-[300px]">
+            <div class="additional-section w-full px-5 pb-5 pt-3 flex flex-col box-border bg-white border-t border-gray-100 h-auto">
                 <div class="flex items-center gap-3 mb-4">
                     <h3 class="font-bold text-gray-700" contenteditable="true" spellcheck="false" lang="ko">추가자료</h3>
                     <button onclick="addAdditionalImage(this)" class="no-capture px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-sm text-sm font-bold transition">
@@ -192,7 +192,7 @@
                     </button>
                 </div>
                 
-                <div class="additional-images-container grid grid-cols-4 gap-x-4 gap-y-12 w-full h-auto">
+                <div class="additional-images-container grid grid-cols-4 gap-x-4 gap-y-4 w-full h-auto">
                     <!-- 기본 빈 상태로 시작 -->
                 </div>
             </div>
@@ -206,7 +206,6 @@
         let personCount = 0;
         const croppers = new Map();
         
-        // 한글 입력(IME) 상태 추적
         let isComposing = false;
 
         window.onload = function() {
@@ -259,14 +258,19 @@
         }
 
         function addAdditionalImage(btn) {
-            const container = btn.closest('.additional-section').querySelector('.additional-images-container');
+            const section = btn.closest('.additional-section');
+            const container = section.querySelector('.additional-images-container');
+            
             if(container.children.length >= 20) {
                 alert("해당 인원의 추가 이미지는 최대 20개까지만 가능합니다.");
                 return;
             }
             
+            // 이미지가 추가될 때 하단 여백 최적화 (기존 pb-16에서 pb-6으로 축소)
+            section.classList.add('pb-6');
+
             const slotHTML = `
-                <div class="additional-img-slot w-full flex flex-col group pb-4">
+                <div class="additional-img-slot w-full flex flex-col group">
                     <div class="w-full h-[240px] relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden">
                         <button class="no-capture absolute top-1 right-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm text-[10px] font-bold hidden group-hover:block z-20" onclick="removeAdditionalImage(this)">삭제</button>
                         <div class="placeholder absolute inset-0 flex flex-col items-center justify-center text-gray-400 font-bold text-xs text-center px-2 cursor-pointer hover:bg-slate-100 z-10 transition" onclick="this.nextElementSibling.click()">
@@ -276,20 +280,28 @@
                         <input type="file" class="hidden" accept="image/*" onchange="loadAdditionalCropperImage(event)">
                         <img class="max-w-full block opacity-0">
                     </div>
-                    <div contenteditable="true" spellcheck="false" lang="ko" data-placeholder="설명 입력" class="additional-img-text w-full text-center mt-3 px-1 outline-none text-gray-800 text-[14px] leading-relaxed single-line-input"></div>
+                    <!-- 설명 칸 상단 여백 최적화 mt-3에서 mt-1.5로 축소 -->
+                    <div contenteditable="true" spellcheck="false" lang="ko" data-placeholder="설명 입력" class="additional-img-text w-full text-center mt-1.5 px-1 outline-none text-gray-800 text-[14px] leading-relaxed single-line-input"></div>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', slotHTML);
         }
 
         function removeAdditionalImage(btn) {
+            const section = btn.closest('.additional-section');
+            const container = section.querySelector('.additional-images-container');
             const slot = btn.closest('.additional-img-slot');
             const img = slot.querySelector('img');
+            
             if(croppers.has(img)) {
                 croppers.get(img).destroy();
                 croppers.delete(img);
             }
             slot.remove();
+
+            if (container.children.length === 0) {
+                section.classList.remove('pb-6');
+            }
         }
 
         document.addEventListener('compositionstart', () => { isComposing = true; });
@@ -470,21 +482,19 @@
                 }
             });
 
-            // html2canvas 잘림 방지를 위한 고도화된 로직
             html2canvas(captureArea, {
                 scale: 2, 
                 useCORS: true,
                 backgroundColor: '#ffffff',
                 logging: false,
                 onclone: (clonedDoc) => {
-                    // 1. 복제된 문서에서 모든 contenteditable 요소를 정적인 div로 교체하여 렌더링 오류 방지
                     const editables = clonedDoc.querySelectorAll('[contenteditable="true"]');
                     editables.forEach(el => {
                         const staticDiv = clonedDoc.createElement('div');
                         staticDiv.style.cssText = window.getComputedStyle(el).cssText;
-                        staticDiv.style.height = 'auto'; // 높이 자동 조절
-                        staticDiv.style.overflow = 'visible'; // 자르지 않음
-                        staticDiv.style.border = 'none'; // 테두리 제거 (디자인용 border는 Tailwind 클래스로 처리됨)
+                        staticDiv.style.height = 'auto';
+                        staticDiv.style.overflow = 'visible';
+                        staticDiv.style.border = 'none';
                         staticDiv.innerText = el.innerText || el.getAttribute('data-placeholder') || "";
                         if (!el.innerText && el.getAttribute('data-placeholder')) {
                             staticDiv.style.color = '#9ca3af';
@@ -492,9 +502,9 @@
                         el.parentNode.replaceChild(staticDiv, el);
                     });
 
-                    // 2. 전체 캡쳐 영역 하단 여유 공간 확보
                     const clonedArea = clonedDoc.getElementById('capture-area');
-                    clonedArea.style.paddingBottom = '80px';
+                    // 잘림 방지용 최소 여백만 남김
+                    clonedArea.style.paddingBottom = '30px';
                     clonedArea.style.overflow = 'visible';
                     clonedArea.style.height = 'auto';
                 }
