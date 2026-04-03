@@ -44,6 +44,7 @@
         .single-line-input {
             white-space: nowrap;
             overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 </head>
@@ -183,7 +184,7 @@
             </div>
 
             <!-- 하단: 개인별 추가자료 영역 -->
-            <div class="additional-section w-full px-5 pb-5 pt-3 flex flex-col box-border bg-white border-t border-gray-100">
+            <div class="additional-section w-full px-5 pb-12 pt-3 flex flex-col box-border bg-white border-t border-gray-100 h-auto min-h-[300px]">
                 <div class="flex items-center gap-3 mb-4">
                     <h3 class="font-bold text-gray-700" contenteditable="true" spellcheck="false" lang="ko">추가자료</h3>
                     <button onclick="addAdditionalImage(this)" class="no-capture px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-sm text-sm font-bold transition">
@@ -191,7 +192,7 @@
                     </button>
                 </div>
                 
-                <div class="additional-images-container grid grid-cols-4 gap-4 w-full h-auto">
+                <div class="additional-images-container grid grid-cols-4 gap-x-4 gap-y-12 w-full h-auto">
                     <!-- 기본 빈 상태로 시작 -->
                 </div>
             </div>
@@ -265,7 +266,7 @@
             }
             
             const slotHTML = `
-                <div class="additional-img-slot w-full flex flex-col group">
+                <div class="additional-img-slot w-full flex flex-col group pb-4">
                     <div class="w-full h-[240px] relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden">
                         <button class="no-capture absolute top-1 right-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm text-[10px] font-bold hidden group-hover:block z-20" onclick="removeAdditionalImage(this)">삭제</button>
                         <div class="placeholder absolute inset-0 flex flex-col items-center justify-center text-gray-400 font-bold text-xs text-center px-2 cursor-pointer hover:bg-slate-100 z-10 transition" onclick="this.nextElementSibling.click()">
@@ -275,7 +276,7 @@
                         <input type="file" class="hidden" accept="image/*" onchange="loadAdditionalCropperImage(event)">
                         <img class="max-w-full block opacity-0">
                     </div>
-                    <div contenteditable="true" spellcheck="false" lang="ko" data-placeholder="설명 입력" class="additional-img-text w-full text-center mt-2 outline-none text-gray-800 single-line-input"></div>
+                    <div contenteditable="true" spellcheck="false" lang="ko" data-placeholder="설명 입력" class="additional-img-text w-full text-center mt-3 px-1 outline-none text-gray-800 text-[14px] leading-relaxed single-line-input"></div>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', slotHTML);
@@ -291,25 +292,20 @@
             slot.remove();
         }
 
-        // IME 상태 추적 이벤트 리스너
         document.addEventListener('compositionstart', () => { isComposing = true; });
         document.addEventListener('compositionend', () => { isComposing = false; });
 
-        // 한글 입력기 깨짐 방지를 위한 강제 포커스 리셋
         document.addEventListener('focusin', (e) => {
             if (e.target.hasAttribute('contenteditable')) {
                 e.target.setAttribute('lang', 'ko');
             }
         });
 
-        // 3. 줄 수 제한
         document.addEventListener('keydown', function(e) {
             const el = e.target;
             if (!el.hasAttribute('contenteditable')) return;
 
-            // 엔터 키 제한
             if (e.key === 'Enter') {
-                // 추가자료 설명 텍스트는 무조건 1줄 제한
                 if (el.classList.contains('additional-img-text')) {
                     e.preventDefault();
                     return;
@@ -339,7 +335,6 @@
         document.addEventListener('paste', function(e) {
             const el = e.target;
             
-            // 추가자료 설명 텍스트는 붙여넣기 시 줄바꿈 제거
             if (el.classList.contains('additional-img-text')) {
                 e.preventDefault();
                 let text = (e.clipboardData || window.clipboardData).getData('text/plain');
@@ -395,8 +390,6 @@
             const slot = event.target.closest('.additional-img-slot');
             const imgElement = slot.querySelector('img');
             const placeholder = slot.querySelector('.placeholder');
-
-            // 추가자료 슬롯 전체(상위 div)를 컨테이너로 전달
             const imageContainer = slot.querySelector('div:first-child');
 
             applyCropperLogic(file, imgElement, placeholder, imageContainer, null);
@@ -453,7 +446,6 @@
             noCaptureElements.forEach(el => el.style.visibility = 'hidden');
 
             croppers.forEach((cropper, imgElement) => {
-                // 부모 컨테이너 찾기 (전신, 두상, 추가자료 공통)
                 const container = imgElement.parentElement;
                 if(!container) return;
 
@@ -478,10 +470,34 @@
                 }
             });
 
+            // html2canvas 잘림 방지를 위한 고도화된 로직
             html2canvas(captureArea, {
                 scale: 2, 
                 useCORS: true,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                logging: false,
+                onclone: (clonedDoc) => {
+                    // 1. 복제된 문서에서 모든 contenteditable 요소를 정적인 div로 교체하여 렌더링 오류 방지
+                    const editables = clonedDoc.querySelectorAll('[contenteditable="true"]');
+                    editables.forEach(el => {
+                        const staticDiv = clonedDoc.createElement('div');
+                        staticDiv.style.cssText = window.getComputedStyle(el).cssText;
+                        staticDiv.style.height = 'auto'; // 높이 자동 조절
+                        staticDiv.style.overflow = 'visible'; // 자르지 않음
+                        staticDiv.style.border = 'none'; // 테두리 제거 (디자인용 border는 Tailwind 클래스로 처리됨)
+                        staticDiv.innerText = el.innerText || el.getAttribute('data-placeholder') || "";
+                        if (!el.innerText && el.getAttribute('data-placeholder')) {
+                            staticDiv.style.color = '#9ca3af';
+                        }
+                        el.parentNode.replaceChild(staticDiv, el);
+                    });
+
+                    // 2. 전체 캡쳐 영역 하단 여유 공간 확보
+                    const clonedArea = clonedDoc.getElementById('capture-area');
+                    clonedArea.style.paddingBottom = '80px';
+                    clonedArea.style.overflow = 'visible';
+                    clonedArea.style.height = 'auto';
+                }
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `commission_application_${personCount}인.png`;
