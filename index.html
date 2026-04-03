@@ -110,9 +110,9 @@
                             </div>
 
                             <!-- 2. 컬러 팔레트 -->
-                            <div class="flex-1 flex flex-col">
+                            <div class="flex-1 flex flex-col h-[240px]">
                                 <h3 class="font-bold text-gray-700 mb-2">색상표</h3>
-                                <div class="flex gap-2 justify-around flex-1 bg-gray-50 rounded px-2 pt-20 pb-2 border border-gray-100 items-start">
+                                <div class="flex gap-2 justify-around h-[120px] bg-gray-50 rounded px-2 pt-6 pb-2 border border-gray-100 items-start">
                                     <div class="flex flex-col items-center w-12">
                                         <label class="w-10 h-10 rounded-sm border border-gray-200 shadow-sm relative cursor-pointer overflow-hidden mb-2 transition flex-shrink-0" style="background-color: #ffb3ba;">
                                             <input type="color" value="#ffb3ba" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer" oninput="this.parentElement.style.backgroundColor = this.value">
@@ -144,6 +144,11 @@
                                         <div contenteditable="true" data-placeholder="부위" class="color-desc w-full text-center text-xs bg-transparent focus:outline-none text-gray-700 break-words"></div>
                                     </div>
                                 </div>
+                                <div class="mt-auto pb-1 text-[13px] text-gray-400 leading-tight text-center">
+                                    자료를 참고하여 작업하나<br>
+                                    작업물의 색상이나 디테일이 그림 데포르메에 따라<br>
+                                    완전히 같게 나오지 않습니다.
+                                </div>
                             </div>
                         </div>
 
@@ -171,15 +176,7 @@
                 </div>
                 
                 <div class="additional-images-container grid grid-cols-4 gap-4 w-full h-auto">
-                    <div class="additional-img-slot w-full h-[240px] relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden group">
-                        <button class="no-capture absolute top-1 right-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm text-[10px] font-bold hidden group-hover:block z-20" onclick="removeAdditionalImage(this)">삭제</button>
-                        <div class="placeholder absolute inset-0 flex flex-col items-center justify-center text-gray-400 font-bold text-xs text-center px-2 cursor-pointer hover:bg-slate-100 z-10 transition" onclick="this.nextElementSibling.click()">
-                            클릭하여 업로드
-                            <span class="text-[10px] font-normal mt-1 text-gray-400">(드래그/휠)</span>
-                        </div>
-                        <input type="file" class="hidden" accept="image/*" onchange="loadAdditionalCropperImage(event)">
-                        <img class="max-w-full block opacity-0">
-                    </div>
+                    <!-- 기본 빈 상태로 시작 -->
                 </div>
             </div>
 
@@ -274,7 +271,6 @@
 
         // 3. 줄 수 제한 (한글 IME 지원 강화)
         document.addEventListener('keydown', function(e) {
-            // 한글 합성 중일 때는 줄 수 제한 로직을 실행하지 않음 (한글 끊김 방지)
             if (e.isComposing) return;
 
             if (e.key === 'Enter') {
@@ -331,7 +327,6 @@
             }
         });
 
-        // 4. 이미지 로드 및 Cropper 적용
         function loadCropperImage(event, type) {
             const file = event.target.files[0];
             if (!file) return;
