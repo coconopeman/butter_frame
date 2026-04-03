@@ -62,7 +62,7 @@
                     이미지로 저장하기
                 </button>
             </div>
-            <span class="text-gray-400 text-xs">한영 전환이 안된다면 다른 창을 클릭했다 다시 돌아와보세요</span>
+            <span class="text-gray-400 text-xs">한영 전환이 안된다면 다른 브라우저를 클릭했다 다시 돌아와보세요</span>
         </div>
     </div>
 
@@ -489,22 +489,41 @@
                 backgroundColor: '#ffffff',
                 logging: false,
                 onclone: (clonedDoc) => {
-                    // 복제된 문서에서 모든 contenteditable 요소를 정적인 상태로 유지하면서 스타일 유실 방지
+                    // 모든 contenteditable 요소 처리
                     const editables = clonedDoc.querySelectorAll('[contenteditable="true"]');
                     editables.forEach(el => {
-                        // 편집 기능만 끄기 (요소를 교체하지 않음으로써 모든 CSS 클래스 유지)
-                        el.setAttribute('contenteditable', 'false');
+                        // 중요: 캡처 시 잘림을 방지하기 위해 정적 div로 변환하면서 
+                        // 원래 요소의 모든 계산된 스타일(computed style)을 명시적으로 부여
+                        const originalEl = document.querySelector(`[data-placeholder="${el.getAttribute('data-placeholder')}"]`) || el;
+                        const computedStyle = window.getComputedStyle(originalEl);
                         
-                        // 비어있을 경우 placeholder 텍스트를 실제 텍스트로 삽입 (회색처리 유지)
-                        if (!el.innerText.trim()) {
-                            el.innerText = el.getAttribute('data-placeholder') || "";
-                            el.style.color = '#9ca3af'; 
+                        const staticDiv = clonedDoc.createElement('div');
+                        
+                        // 기본 스타일 복제
+                        staticDiv.style.cssText = computedStyle.cssText;
+                        staticDiv.style.display = 'block';
+                        staticDiv.style.height = 'auto';
+                        staticDiv.style.minHeight = computedStyle.lineHeight;
+                        staticDiv.style.overflow = 'visible';
+                        staticDiv.style.wordBreak = 'break-all';
+                        staticDiv.style.whiteSpace = 'pre-wrap';
+                        staticDiv.className = el.className;
+                        staticDiv.classList.remove('single-line-input'); // 잘림 방지를 위해 한 줄 제한 해제
+
+                        // 내용 결정
+                        const content = el.innerText.trim();
+                        if (!content) {
+                            staticDiv.innerText = el.getAttribute('data-placeholder') || "";
+                            staticDiv.style.color = '#9ca3af';
+                        } else {
+                            staticDiv.innerText = content;
                         }
+
+                        el.parentNode.replaceChild(staticDiv, el);
                     });
 
                     const clonedArea = clonedDoc.getElementById('capture-area');
-                    clonedArea.style.paddingBottom = '30px';
-                    clonedArea.style.overflow = 'visible';
+                    clonedArea.style.paddingBottom = '100px'; // 하단 여백 대폭 확보
                     clonedArea.style.height = 'auto';
                 }
             }).then(canvas => {
