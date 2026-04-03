@@ -46,6 +46,13 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        
+        /* 설명칸 줄높이 및 높이 고정 (5줄: 1.5 * 5 = 7.5rem) */
+        .desc-input {
+            line-height: 1.5rem !important;
+            height: 7.5rem !important; 
+            min-height: 7.5rem !important;
+        }
     </style>
 </head>
 <body class="bg-[#4d4d4d] min-h-screen flex flex-col items-center py-10 font-sans">
@@ -180,7 +187,7 @@
                                     굵은 글씨
                                 </button>
                             </div>
-                            <div class="desc-input flex-1 bg-gray-50 border-2 border-gray-100 rounded p-4 text-gray-800 outline-none focus:border-yellow-400 focus:bg-white transition overflow-hidden whitespace-pre-wrap leading-relaxed break-words" contenteditable="true" spellcheck="false" lang="ko" data-placeholder="이미지에 드러나지않은 캐릭터의 특징이나 빠지지 않았으면 하는 부분, 강조하고 싶은 부분을 적어주세요. (최대 5줄)"></div>
+                            <div class="desc-input flex-1 bg-gray-50 border-2 border-gray-100 rounded px-4 pb-4 pt-2 text-gray-800 outline-none focus:border-yellow-400 focus:bg-white transition overflow-hidden whitespace-pre-wrap break-words" contenteditable="true" spellcheck="false" lang="ko" data-placeholder="이미지에 드러나지않은 캐릭터의 특징이나 빠지지 않았으면 하는 부분, 강조하고 싶은 부분을 적어주세요. (최대 5줄)"></div>
                         </div>
                     </div>
                 </div>
@@ -272,7 +279,7 @@
             section.classList.add('pb-6');
 
             const slotHTML = `
-                <div class="additional-img-slot w-full flex flex-col group">
+                <div class="additional-img-slot w-full flex flex-col group pb-1">
                     <div class="w-full h-[240px] relative bg-slate-50 border-2 border-dashed border-slate-300 rounded-md overflow-hidden">
                         <button class="no-capture absolute top-1 right-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-sm text-[10px] font-bold hidden group-hover:block z-20" onclick="removeAdditionalImage(this)">삭제</button>
                         <div class="placeholder absolute inset-0 flex flex-col items-center justify-center text-gray-400 font-bold text-xs text-center px-2 cursor-pointer hover:bg-slate-100 z-10 transition" onclick="this.nextElementSibling.click()">
@@ -319,7 +326,7 @@
             if (!el.hasAttribute('contenteditable')) return;
 
             if (e.key === 'Enter') {
-                if (el.classList.contains('additional-img-text')) {
+                if (el.classList.contains('additional-img-text') || el.classList.contains('editable-label')) {
                     e.preventDefault();
                     return;
                 }
@@ -329,16 +336,8 @@
                 else if (el.classList.contains('color-desc')) maxLines = 3;
                 
                 if (maxLines > 0) {
-                    let style = window.getComputedStyle(el);
-                    let lineHeight = parseFloat(style.lineHeight);
-                    if (isNaN(lineHeight)) lineHeight = parseFloat(style.fontSize) * 1.5;
-                    let paddingTop = parseFloat(style.paddingTop);
-                    let paddingBottom = parseFloat(style.paddingBottom);
-                    
-                    let currentHeight = el.scrollHeight;
-                    let maxHeight = Math.round((lineHeight * maxLines) + paddingTop + paddingBottom);
-                    
-                    if (currentHeight >= maxHeight - 2) {
+                    const lines = el.innerText.split('\n');
+                    if (lines.length >= maxLines && !isComposing) {
                         e.preventDefault();
                     }
                 }
@@ -347,10 +346,12 @@
 
         document.addEventListener('paste', function(e) {
             const el = e.target;
+            if (!el.hasAttribute('contenteditable')) return;
             
-            if (el.classList.contains('additional-img-text')) {
-                e.preventDefault();
-                let text = (e.clipboardData || window.clipboardData).getData('text/plain');
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+            
+            if (el.classList.contains('additional-img-text') || el.classList.contains('editable-label')) {
                 document.execCommand('insertText', false, text.replace(/\r?\n/g, ' '));
                 return;
             }
@@ -360,25 +361,15 @@
             else if (el.classList.contains('color-desc')) maxLines = 3;
 
             if (maxLines > 0) {
-                e.preventDefault();
-                let style = window.getComputedStyle(el);
-                let lineHeight = parseFloat(style.lineHeight);
-                if (isNaN(lineHeight)) lineHeight = parseFloat(style.fontSize) * 1.5;
-                let paddingTop = parseFloat(style.paddingTop);
-                let paddingBottom = parseFloat(style.paddingBottom);
+                const lines = text.split(/\r?\n/);
+                const currentText = el.innerText;
+                const currentLinesCount = currentText.split(/\r?\n/).length;
+                const availableLines = Math.max(0, maxLines - currentLinesCount + 1);
                 
-                let currentLines = Math.round((el.scrollHeight - paddingTop - paddingBottom) / lineHeight);
-                let availableLines = maxLines - currentLines;
-                
-                let text = (e.clipboardData || window.clipboardData).getData('text/plain');
-                
-                if (availableLines <= 0) {
-                    document.execCommand('insertText', false, text.replace(/\r?\n/g, ' '));
-                    return;
-                }
-                
-                let linesArr = text.split(/\r?\n/).slice(0, availableLines + 1);
-                document.execCommand('insertText', false, linesArr.join('\n'));
+                const filteredText = lines.slice(0, availableLines).join('\n');
+                document.execCommand('insertText', false, filteredText);
+            } else {
+                document.execCommand('insertText', false, text);
             }
         });
 
@@ -489,42 +480,38 @@
                 backgroundColor: '#ffffff',
                 logging: false,
                 onclone: (clonedDoc) => {
-                    // 모든 contenteditable 요소 처리
+                    const clonedArea = clonedDoc.getElementById('capture-area');
+                    clonedArea.style.paddingBottom = '60px'; // 하단 여백 충분히 확보
+                    clonedArea.style.height = 'auto';
+
                     const editables = clonedDoc.querySelectorAll('[contenteditable="true"]');
                     editables.forEach(el => {
-                        // 중요: 캡처 시 잘림을 방지하기 위해 정적 div로 변환하면서 
-                        // 원래 요소의 모든 계산된 스타일(computed style)을 명시적으로 부여
-                        const originalEl = document.querySelector(`[data-placeholder="${el.getAttribute('data-placeholder')}"]`) || el;
-                        const computedStyle = window.getComputedStyle(originalEl);
+                        el.removeAttribute('contenteditable');
+                        el.style.outline = 'none';
+                        el.style.boxShadow = 'none';
                         
-                        const staticDiv = clonedDoc.createElement('div');
+                        // 텍스트 잘림 방지 스타일 보강
+                        el.style.display = 'block';
+                        el.style.overflow = 'visible';
                         
-                        // 기본 스타일 복제
-                        staticDiv.style.cssText = computedStyle.cssText;
-                        staticDiv.style.display = 'block';
-                        staticDiv.style.height = 'auto';
-                        staticDiv.style.minHeight = computedStyle.lineHeight;
-                        staticDiv.style.overflow = 'visible';
-                        staticDiv.style.wordBreak = 'break-all';
-                        staticDiv.style.whiteSpace = 'pre-wrap';
-                        staticDiv.className = el.className;
-                        staticDiv.classList.remove('single-line-input'); // 잘림 방지를 위해 한 줄 제한 해제
-
-                        // 내용 결정
-                        const content = el.innerText.trim();
-                        if (!content) {
-                            staticDiv.innerText = el.getAttribute('data-placeholder') || "";
-                            staticDiv.style.color = '#9ca3af';
-                        } else {
-                            staticDiv.innerText = content;
+                        if (!el.innerText.trim()) {
+                            el.innerText = el.getAttribute('data-placeholder') || "";
+                            el.style.color = '#9ca3af';
                         }
-
-                        el.parentNode.replaceChild(staticDiv, el);
                     });
 
-                    const clonedArea = clonedDoc.getElementById('capture-area');
-                    clonedArea.style.paddingBottom = '100px'; // 하단 여백 대폭 확보
-                    clonedArea.style.height = 'auto';
+                    // 추가자료 그리드 및 텍스트 레이아웃 강제 유지
+                    const additionalSlots = clonedDoc.querySelectorAll('.additional-img-slot');
+                    additionalSlots.forEach(slot => {
+                        slot.style.height = 'auto';
+                        slot.style.marginBottom = '10px';
+                        const txt = slot.querySelector('.additional-img-text');
+                        if (txt) {
+                            txt.style.overflow = 'visible';
+                            txt.style.whiteSpace = 'normal';
+                            txt.style.minHeight = '1.2em';
+                        }
+                    });
                 }
             }).then(canvas => {
                 const link = document.createElement('a');
