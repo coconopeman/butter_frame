@@ -481,7 +481,7 @@
                 logging: false,
                 onclone: (clonedDoc) => {
                     const clonedArea = clonedDoc.getElementById('capture-area');
-                    clonedArea.style.paddingBottom = '60px'; // 하단 여백 충분히 확보
+                    clonedArea.style.paddingBottom = '100px'; // 하단 잘림 방지 여백 확장
                     clonedArea.style.height = 'auto';
 
                     const editables = clonedDoc.querySelectorAll('[contenteditable="true"]');
@@ -490,8 +490,13 @@
                         el.style.outline = 'none';
                         el.style.boxShadow = 'none';
                         
-                        // 텍스트 잘림 방지 스타일 보강
-                        el.style.display = 'block';
+                        // 수정: 라벨류는 인라인-블록으로 유지하여 한 줄에 나오게 함
+                        if (el.classList.contains('editable-label')) {
+                            el.style.display = 'inline-block';
+                        } else {
+                            el.style.display = 'block';
+                        }
+                        
                         el.style.overflow = 'visible';
                         
                         if (!el.innerText.trim()) {
